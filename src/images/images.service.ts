@@ -14,7 +14,15 @@ export class ImagesService {
   ) {}
 
   async getImage(search: string, user: User): Promise<string> {
-    return this.imageRepository.getImage(search, user);
+    const image = await this.imageRepository.getImage(search, user);
+
+    if (!image) {
+      throw new NotFoundException(
+        `Image with search criteria "${JSON.stringify(search)}" not found`,
+      );
+    }
+
+    return image.imageName;
   }
 
   async getImageById(id: number, user: User): Promise<string> {
@@ -41,11 +49,11 @@ export class ImagesService {
   }
 
   async uploadImage(
-    uploadImageDto: UploadImageDto,
     user: User,
     imageName: string,
+    uploadImageDto?: UploadImageDto,
   ): Promise<Image> {
-    return this.imageRepository.uploadImage(uploadImageDto, user, imageName);
+    return this.imageRepository.uploadImage(user, imageName, uploadImageDto);
   }
 
   async bulkUploadImages(user: User, imageNames: string[]): Promise<Image[]> {

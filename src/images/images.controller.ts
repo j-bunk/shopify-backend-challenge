@@ -14,18 +14,29 @@ import {
   UseInterceptors,
   Body,
   Res,
+  NotFoundException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import * as path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import { User } from '../auth/user.entity';
 import { GetUser } from '../auth/get-user.decorator';
 import { ImagesService } from './images.service';
 import { Image } from './image.entity';
 import { UploadImageDto } from './dto/upload-image.dto';
-import { diskStorage } from 'multer';
-import * as path from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { FileUploadDto } from './dto/file-upload.dto';
+import { FilesUploadDto } from './dto/files-upload.dto';
 
 export const storage = {
   storage: diskStorage({
@@ -40,6 +51,8 @@ export const storage = {
   }),
 };
 
+@ApiBearerAuth()
+@ApiTags('images')
 @Controller('images')
 @UseGuards(AuthGuard())
 export class ImagesController {
@@ -48,6 +61,7 @@ export class ImagesController {
   constructor(private imagesService: ImagesService) {}
 
   @Get()
+  @ApiQuery({ name: 'search', required: false })
   async getImage(
     @Query(ValidationPipe) search: string,
     @GetUser() user: User,
@@ -58,6 +72,7 @@ export class ImagesController {
         search,
       )}`,
     );
+
     return res.sendFile(
       path.join(
         process.cwd(),
@@ -89,16 +104,20 @@ export class ImagesController {
   }
 
   @Post('upload')
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    type: FileUploadDto,
+  })
   @UseInterceptors(FileInterceptor('file', storage))
   uploadImage(
-    @Body(ValidationPipe) uploadImageDto: UploadImageDto,
     @GetUser() user: User,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() image: Express.Multer.File,
+    @Body() uploadImageDto?: UploadImageDto,
   ): Promise<Image> {
-    return this.imagesService.uploadImage(uploadImageDto, user, file.filename);
+    return this.imagesService.uploadImage(user, image.filename, uploadImageDto);
   }
 
-  @Get('name/:imagename')
+  @Get('/:imagename')
   async getImageByName(
     @Param('imagename') imageName: string,
     @GetUser() user: User,
@@ -114,6 +133,10 @@ export class ImagesController {
   }
 
   @Post('bulkupload')
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    type: FilesUploadDto,
+  })
   @UseInterceptors(FilesInterceptor('files', null, storage))
   bulkUploadImages(
     @UploadedFiles() files: Array<Express.Multer.File>,

@@ -9,12 +9,12 @@ import { UploadImageDto } from './dto/upload-image.dto';
 export class ImageRepository extends Repository<Image> {
   private logger = new Logger('ImageRepository');
 
-  async getImage(search: string, user: User): Promise<string> {
+  async getImage(search: string, user: User): Promise<Image> {
     const query = this.createQueryBuilder('image');
 
     query.where('image.userId = :userId', { userId: user.id });
 
-    if (search) {
+    if (search.length) {
       query.andWhere(
         '(image.title LIKE :search OR image.description LIKE :search)',
         { search: `%${search}%` },
@@ -23,7 +23,7 @@ export class ImageRepository extends Repository<Image> {
 
     try {
       const image = await query.getOne();
-      return image.imageName;
+      return image;
     } catch (error) {
       this.logger.error(
         `Failed to get images for user "${
@@ -36,9 +36,9 @@ export class ImageRepository extends Repository<Image> {
   }
 
   async uploadImage(
-    uploadImageDto: UploadImageDto,
     user: User,
     imageName: string,
+    uploadImageDto?: UploadImageDto,
   ): Promise<Image> {
     const { title, description } = uploadImageDto;
 
