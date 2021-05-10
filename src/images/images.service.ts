@@ -48,6 +48,10 @@ export class ImagesService {
     return this.imageRepository.uploadImage(uploadImageDto, user, imageName);
   }
 
+  async bulkUploadImages(user: User, imageNames: string[]): Promise<Image[]> {
+    return this.imageRepository.bulkUploadImages(user, imageNames);
+  }
+
   async getImageByName(imageName: string, user: User): Promise<string> {
     const image = await this.imageRepository.findOne({
       where: { imageName, userId: user.id },

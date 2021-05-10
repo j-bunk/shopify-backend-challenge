@@ -61,4 +61,29 @@ export class ImageRepository extends Repository<Image> {
     delete image.user;
     return image;
   }
+
+  async bulkUploadImages(user: User, imageNames: string[]): Promise<Image[]> {
+    const imageNamesLength = imageNames.length;
+    const images = [];
+    for (let i = 0; i < imageNamesLength; i++) {
+      const image = new Image();
+      image.imageName = imageNames[i];
+      image.user = user;
+
+      try {
+        await image.save();
+      } catch (error) {
+        this.logger.error(
+          `Failed to upload image for user "${user.username}". Data: ${imageNames[i]}`,
+          error.stack,
+        );
+        throw new InternalServerErrorException();
+      }
+
+      delete image.user;
+      images.push(image);
+    }
+
+    return images;
+  }
 }

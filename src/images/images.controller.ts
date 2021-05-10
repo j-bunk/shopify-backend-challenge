@@ -113,13 +113,13 @@ export class ImagesController {
     );
   }
 
-  // @Post('bulkUpload')
-  // @UseInterceptors(FilesInterceptor('files'))
-  // bulkUploadImages(
-  //   @UploadedFiles() files: Array<Express.Multer.File>,
-  //   @Body() uploadImageDto: UploadImageDto,
-  //   @GetUser() user: User,
-  // ) {
-  //   console.log(files);
-  // }
+  @Post('bulkupload')
+  @UseInterceptors(FilesInterceptor('files', null, storage))
+  bulkUploadImages(
+    @UploadedFiles() files: Array<Express.Multer.File>,
+    @GetUser() user: User,
+  ): Promise<Image[]> {
+    const fileNames: string[] = files.map((file) => file.filename);
+    return this.imagesService.bulkUploadImages(user, fileNames);
+  }
 }
