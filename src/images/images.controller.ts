@@ -1,7 +1,7 @@
 import {
   Controller,
   Get,
-  //   Post,
+  Post,
   Param,
   Delete,
   Query,
@@ -9,17 +9,36 @@ import {
   ParseIntPipe,
   UseGuards,
   Logger,
-  //   UploadedFile,
-  //   UploadedFiles,
-  //   UseInterceptors,
+  UploadedFile,
+  UploadedFiles,
+  UseInterceptors,
+  Body,
+  Res,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-// import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 
 import { User } from '../auth/user.entity';
 import { GetUser } from '../auth/get-user.decorator';
 import { ImagesService } from './images.service';
 import { Image } from './image.entity';
+import { UploadImageDto } from './dto/upload-image.dto';
+import { diskStorage } from 'multer';
+import * as path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+
+export const storage = {
+  storage: diskStorage({
+    destination: './uploads/images',
+    filename: (req, file, cb) => {
+      const filename: string =
+        path.parse(file.originalname).name.replace(/\s/g, '') + uuidv4();
+      const extension: string = path.parse(file.originalname).ext;
+
+      cb(null, `${filename}${extension}`);
+    },
+  }),
+};
 
 @Controller('images')
 @UseGuards(AuthGuard())
@@ -29,22 +48,36 @@ export class ImagesController {
   constructor(private imagesService: ImagesService) {}
 
   @Get()
-  getImages(
+  async getImage(
     @Query(ValidationPipe) search: string,
     @GetUser() user: User,
-  ): Promise<Image[]> {
+    @Res() res,
+  ): Promise<Image> {
     this.logger.verbose(
-      `User "${user.username}" retrieving all images. Search query: ${search}`,
+      `User "${user.username}" retrieving image with search: ${JSON.stringify(
+        search,
+      )}`,
     );
-    return this.imagesService.getImages(search, user);
+    return res.sendFile(
+      path.join(
+        process.cwd(),
+        'uploads/images/' + (await this.imagesService.getImage(search, user)),
+      ),
+    );
   }
 
   @Get('/:id')
-  getImageById(
+  async getImageById(
     @Param('id', ParseIntPipe) id: number,
     @GetUser() user: User,
-  ): Promise<Image> {
-    return this.imagesService.getImageById(id, user);
+    @Res() res,
+  ) {
+    return res.sendFile(
+      path.join(
+        process.cwd(),
+        'uploads/images/' + (await this.imagesService.getImageById(id, user)),
+      ),
+    );
   }
 
   @Delete('/:id')
@@ -55,15 +88,38 @@ export class ImagesController {
     return this.imagesService.deleteImage(id, user);
   }
 
-  //   @Post('upload')
-  //   @UseInterceptors(FileInterceptor('file'))
-  //   uploadFile(@UploadedFile() file: Express.Multer.File) {
-  //     console.log(file);
-  //   }
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file', storage))
+  uploadImage(
+    @Body(ValidationPipe) uploadImageDto: UploadImageDto,
+    @GetUser() user: User,
+    @UploadedFile() file: Express.Multer.File,
+  ): Promise<Image> {
+    return this.imagesService.uploadImage(uploadImageDto, user, file.filename);
+  }
 
-  //   @Post('bulkUpload')
-  //   @UseInterceptors(FilesInterceptor('files'))
-  //   bulkUploadFiles(@UploadedFiles() files: Array<Express.Multer.File>) {
-  //     console.log(files);
-  //   }
+  @Get('name/:imagename')
+  async getImageByName(
+    @Param('imagename') imageName: string,
+    @GetUser() user: User,
+    @Res() res,
+  ): Promise<Image> {
+    return res.sendFile(
+      path.join(
+        process.cwd(),
+        'uploads/images/' +
+          (await this.imagesService.getImageByName(imageName, user)),
+      ),
+    );
+  }
+
+  // @Post('bulkUpload')
+  // @UseInterceptors(FilesInterceptor('files'))
+  // bulkUploadImages(
+  //   @UploadedFiles() files: Array<Express.Multer.File>,
+  //   @Body() uploadImageDto: UploadImageDto,
+  //   @GetUser() user: User,
+  // ) {
+  //   console.log(files);
+  // }
 }

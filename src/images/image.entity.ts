@@ -19,8 +19,8 @@ export class Image extends BaseEntity {
   @Column()
   description: string;
 
-  @Column({ type: 'bytea', nullable: false })
-  image: Buffer;
+  @Column()
+  imageName: string;
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   @ManyToOne((type) => User, (user) => user.images, { eager: false })
