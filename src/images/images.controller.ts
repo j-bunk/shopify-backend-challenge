@@ -99,7 +99,7 @@ export class ImagesController {
   deleteImage(
     @Param('id', ParseIntPipe) id: number,
     @GetUser() user: User,
-  ): Promise<void> {
+  ): Promise<number> {
     return this.imagesService.deleteImage(id, user);
   }
 

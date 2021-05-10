@@ -37,7 +37,7 @@ export class ImagesService {
     return image.imageName;
   }
 
-  async deleteImage(id: number, user: User): Promise<void> {
+  async deleteImage(id: number, user: User): Promise<number> {
     const image = await this.imageRepository.delete({
       id,
       userId: user.id,
@@ -46,6 +46,8 @@ export class ImagesService {
     if (image.affected === 0) {
       throw new NotFoundException(`Image with ID "${id}" not found`);
     }
+
+    return id;
   }
 
   async uploadImage(
